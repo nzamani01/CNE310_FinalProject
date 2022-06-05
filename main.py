@@ -41,8 +41,8 @@ def root():
         # Show an error instead of the categories
         category_data = [(-1,"Error")]
         # Show all categories
-        #cur.execute('SELECT categoryId, name FROM categories')
-        #category_data = cur.fetchall()
+        cur.execute('SELECT categoryId, name FROM categories')
+        category_data = cur.fetchall()
     item_data = parse(item_data)
     return render_template('home.html', itemData=item_data, loggedIn=logged_in, firstName=first_name, noOfItems=no_of_items, categoryData=category_data)
 
@@ -89,12 +89,22 @@ def displayCategory():
     category_id = request.args.get("categoryId")
     with sqlite3.connect('database.db') as conn:
         cur = conn.cursor()
-        cur.execute(
-            "SELECT products.productId, products.name, products.price, products.image, categories.name FROM products, categories WHERE products.categoryId = categories.categoryId AND categories.categoryId = " + category_id)
+        cur.execute("SELECT products.productId, products.name, products.price, products.image, categories.name FROM products, categories WHERE products.categoryId = categories.categoryId AND categories.categoryId = " + category_id)
         data = cur.fetchall()
     conn.close()
-    category_name = data[0][4]
-    data = parse(data)
+    # TODO: need to check for empty list, when it's an empty list it means no books were found
+    if data != []:
+        # valid return
+        print("data:", data)
+        category_name = data[0][4]
+        data = parse(data)
+    else:
+        # invalid return
+        # assign default values since no books are available
+        error_values = [(0, 'Currently no available books within this category', 0.0, 'error.jpg', 'Error')]
+        category_name = error_values[0][4]
+        data = parse(error_values)
+        print("error data:", data)
     return render_template('displayCategory.html', data=data, loggedIn=logged_in, firstName=first_name,
                            noOfItems=no_of_items, categoryName=category_name)
 
@@ -353,6 +363,7 @@ def parse(data):
             curr.append(data[i])
             i += 1
         ans.append(curr)
+    print("ans:", ans)
     return ans
 
 if __name__ == '__main__':
